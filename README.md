@@ -153,3 +153,16 @@ Payments are **simulated**. You choose "succeeds" or "fails" on the booking scre
 - **Port already in use:** change `PORT` (and `VITE_API_URL`) or stop the other process.
 - **Show times:** a show's date and time are interpreted in the server's time zone.
 - **Posters:** posters use local SVG files; admin-added remote posters fall back to a local placeholder if they fail to load. Only use images you are allowed to use.
+
+
+## MongoDB Atlas checklist
+1. In Atlas, create a database user (this is separate from your Atlas website login).
+2. Add your current IP address under **Network Access**; avoid `0.0.0.0/0` except for temporary testing.
+3. Copy the Node.js connection string from **Connect → Drivers**.
+4. Put it in `server/.env` as `MONGO_URI=...`, with `/imovies` as the database name. URL-encode special characters in the database password.
+5. Keep `server/.env` private. Never paste the real connection string into public repositories or screenshots.
+6. Start the backend and open `http://localhost:8000/api/health`. The endpoint must report the actual database state.
+
+## Start both apps
+Terminal 1: `cd server` → `npm install` → create `server/.env` from `.env.example` → `npm run dev`.
+Terminal 2: `cd client` → `npm install` → create `client/.env` from `.env.example` if needed → `npm run dev`.
