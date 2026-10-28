@@ -1,8 +1,7 @@
 import { formatINR } from '../utils/format.js';
 
 /**
- * Seat picker. `seats` come from GET /api/shows/:id (each has id,row,number,section,price,booked).
- * Rows are drawn under a curved screen; section price headings appear where the section changes.
+ * Enhanced Seat Picker with cinematic screen glow, section badges, and tier styling.
  */
 export default function SeatMap({ seats, selected, onToggle, max }) {
   const rows = [];
@@ -18,42 +17,67 @@ export default function SeatMap({ seats, selected, onToggle, max }) {
   let lastSection = null;
   return (
     <div className="im-seatmap">
-      <div className="im-screen" aria-hidden="true"><span>Screen this way</span></div>
+      {/* Cinema Screen with Projector Beam Glow */}
+      <div className="im-screen-container">
+        <div className="im-screen" aria-hidden="true">
+          <span>CINEMA SCREEN</span>
+        </div>
+        <div className="im-screen-beam" aria-hidden="true" />
+      </div>
+
       <div className="im-rows">
         {rows.map((row) => {
           const heading = row.section !== lastSection;
           lastSection = row.section;
+          const isVip = row.section.toLowerCase().includes('vip') || row.section.toLowerCase().includes('recliner');
+
           return (
-            <div key={row.label}>
-              {heading && <p className="im-section-label">{row.section} · {formatINR(row.price)}</p>}
+            <div key={row.label} className="im-row-block">
+              {heading && (
+                <div className="im-section-header">
+                  <span className={`im-section-pill ${isVip ? 'vip' : ''}`}>
+                    {row.section}
+                  </span>
+                  <span className="im-section-price">{formatINR(row.price)}</span>
+                </div>
+              )}
               <div className="im-seat-row" role="group" aria-label={`Row ${row.label}`}>
                 <span className="im-row-label" aria-hidden="true">{row.label}</span>
-                {row.seats.map((s) => {
-                  const isSel = selected.includes(s.id);
-                  const blocked = !isSel && selected.length >= max;
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      className={`im-seat ${s.booked ? 'booked' : ''} ${isSel ? 'selected' : ''}`}
-                      disabled={s.booked || blocked}
-                      aria-pressed={isSel}
-                      aria-label={`Seat ${s.id}, ${s.section}, ${formatINR(s.price)}${s.booked ? ', already booked' : ''}`}
-                      onClick={() => onToggle(s.id)}
-                    >
-                      {s.number}
-                    </button>
-                  );
-                })}
+                <div className="im-seat-row-seats">
+                  {row.seats.map((s) => {
+                    const isSel = selected.includes(s.id);
+                    const blocked = !isSel && selected.length >= max;
+                    const tierClass = isVip ? 'seat-vip' : '';
+
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        className={`im-seat ${tierClass} ${s.booked ? 'booked' : ''} ${isSel ? 'selected' : ''}`}
+                        disabled={s.booked || blocked}
+                        aria-pressed={isSel}
+                        title={`Seat ${s.id} (${s.section}) - ${formatINR(s.price)}${s.booked ? ' [Booked]' : ''}`}
+                        aria-label={`Seat ${s.id}, ${s.section}, ${formatINR(s.price)}${s.booked ? ', already booked' : ''}`}
+                        onClick={() => onToggle(s.id)}
+                      >
+                        {s.number}
+                      </button>
+                    );
+                  })}
+                </div>
+                <span className="im-row-label" aria-hidden="true">{row.label}</span>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Legend */}
       <ul className="im-legend">
         <li><span className="im-seat sample" /> Available</li>
         <li><span className="im-seat sample selected" /> Your pick</li>
         <li><span className="im-seat sample booked" /> Booked</li>
+        <li><span className="im-seat sample seat-vip" /> VIP / Recliner</li>
       </ul>
     </div>
   );

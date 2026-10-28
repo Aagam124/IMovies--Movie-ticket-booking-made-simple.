@@ -5,6 +5,7 @@ import { FiCheckCircle, FiInfo } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import SeatMap from '../../components/SeatMap.jsx';
 import Loader from '../../components/Loader/Loader.jsx';
+import BookingStepper from '../../components/BookingStepper.jsx';
 import { EmptyState, ErrorState } from '../../components/StateViews.jsx';
 import useFetch from '../../hooks/useFetch.js';
 import { moviesApi, showsApi, bookingsApi, getErrorMessage } from '../../services/api.js';
@@ -91,13 +92,22 @@ export default function MovieShows() {
   if (movie.error) return <Container className="py-5"><ErrorState message={movie.error} onRetry={movie.reload} /></Container>;
   const m = movie.data.data;
 
-  if (confirmed) return <Container className="py-4" style={{ maxWidth: 640 }}><Confirmation booking={confirmed} movieName={m.name} /></Container>;
+  if (confirmed)
+    return (
+      <Container className="py-4" style={{ maxWidth: 640 }}>
+        <BookingStepper currentStep={4} />
+        <Confirmation booking={confirmed} movieName={m.name} />
+      </Container>
+    );
 
   const dayShows = list.filter((s) => s.date === date);
   const byTheatre = dayShows.reduce((acc, s) => { (acc[s.theatre?._id] ||= { theatre: s.theatre, shows: [] }).shows.push(s); return acc; }, {});
 
+  const currentStep = showId ? (selected.length > 0 ? 3 : 2) : 1;
+
   return (
     <Container className="py-4">
+      <BookingStepper currentStep={currentStep} />
       <header className="im-page-head">
         <p className="mb-1"><Link to={`/movies/${m._id}`} className="im-link">← {m.name}</Link></p>
         <h1>Choose a show and seats</h1>

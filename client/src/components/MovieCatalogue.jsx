@@ -4,6 +4,7 @@ import { Form, Row, Col, Button, Pagination } from 'react-bootstrap';
 import { FiSearch } from 'react-icons/fi';
 import MovieCard from './MovieCard/MovieCard.jsx';
 import Loader from './Loader/Loader.jsx';
+import { SkeletonGrid } from './SkeletonCard.jsx';
 import { EmptyState, ErrorState } from './StateViews.jsx';
 import useFetch from '../hooks/useFetch.js';
 import useDebounce from '../hooks/useDebounce.js';
@@ -59,7 +60,8 @@ export default function MovieCatalogue({ pageSize = 12, showLanguage = false, in
         ))}
       </div>
 
-      {movies.loading && <Loader label="Loading movies…" />}
+      {movies.loading && !movies.data && <SkeletonGrid count={pageSize > 8 ? 8 : pageSize} />}
+      {movies.loading && movies.data && <Loader label="Updating catalog…" />}
       {movies.error && <ErrorState message={movies.error} onRetry={movies.reload} />}
       {!movies.loading && !movies.error && movies.data?.data.length === 0 && (
         <EmptyState title="No movies found" message="Try a different search or genre." action={<Button variant="danger" size="sm" onClick={clear}>Clear filters</Button>} />

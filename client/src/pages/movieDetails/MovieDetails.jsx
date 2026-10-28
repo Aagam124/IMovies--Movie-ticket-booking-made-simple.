@@ -6,6 +6,7 @@ import { FaHeart } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import PosterImage from '../../components/PosterImage.jsx';
 import Loader from '../../components/Loader/Loader.jsx';
+import TrailerModal from '../../components/TrailerModal.jsx';
 import { EmptyState, ErrorState } from '../../components/StateViews.jsx';
 import useFetch from '../../hooks/useFetch.js';
 import { moviesApi, showsApi, reviewsApi, getErrorMessage } from '../../services/api.js';
@@ -102,6 +103,7 @@ export default function MovieDetails() {
   const favs = useFavorites();
   const movie = useFetch(() => moviesApi.get(id), [id]);
   const shows = useFetch(() => showsApi.forMovie(id), [id]);
+  const [showTrailer, setShowTrailer] = useState(false);
 
   if (movie.loading && !movie.data) return <Loader fullPage label="Loading movie…" />;
   if (movie.error || !movie.data) return <Container className="py-5"><ErrorState message={movie.error} onRetry={movie.reload} /></Container>;
@@ -133,9 +135,13 @@ export default function MovieDetails() {
           <p className="im-description">{m.description}</p>
           <div className="d-flex flex-wrap gap-2">
             {showList.length > 0 && !isAdmin && (
-              <Button as={Link} to={`/movies/${m._id}/shows`} variant="danger">Book tickets</Button>
+              <Button as={Link} to={`/movies/${m._id}/shows`} variant="danger" className="im-btn-glow">Book tickets</Button>
             )}
-            {m.trailerUrl && <Button as="a" href={m.trailerUrl} target="_blank" rel="noopener noreferrer" variant="outline-light"><FiPlay /> Watch trailer</Button>}
+            {m.trailerUrl && (
+              <Button variant="outline-light" onClick={() => setShowTrailer(true)}>
+                <FiPlay className="me-1" /> Watch trailer
+              </Button>
+            )}
             {user && !isAdmin && (
               <Button variant="outline-light" onClick={() => favs.toggle(m._id)} aria-pressed={!!fav}>
                 {fav ? <><FaHeart className="text-danger" /> Saved</> : <><FiHeart /> Save to favorites</>}
@@ -174,6 +180,13 @@ export default function MovieDetails() {
       </section>
 
       <Reviews movieId={m._id} onChanged={movie.reload} />
+
+      <TrailerModal
+        show={showTrailer}
+        onHide={() => setShowTrailer(false)}
+        title={m.name}
+        trailerUrl={m.trailerUrl}
+      />
     </Container>
   );
 }
