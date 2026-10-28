@@ -23,6 +23,7 @@ export function createApp() {
   const app = express();
 
   app.disable('x-powered-by');
+  app.set('trust proxy', 1);
 
   // Allow the deployed frontend and local development frontend.
   const allowedOrigins = [
@@ -35,17 +36,27 @@ export function createApp() {
         : []),
   ].filter(Boolean);
 
+  const isAllowedOrigin = (origin) => {
+    if (!origin) return true;
+    if (allowedOrigins.includes(origin)) return true;
+    // Allow any Vercel domain (production, branch preview, etc.)
+    if (/^https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)*\.vercel\.app$/.test(origin)) return true;
+    // Allow localhost
+    if (/^http:\/\/localhost(:\d+)?$/.test(origin)) return true;
+    return false;
+  };
+
   app.use(
     cors({
       origin(origin, callback) {
-        // Requests without an Origin header, such as health checks, are allowed.
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (isAllowedOrigin(origin)) {
           return callback(null, true);
         }
-
-        return callback(new Error(`CORS blocked origin: ${origin}`));
+        return callback(null, false);
       },
       credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
     })
   );
 
@@ -61,7 +72,7 @@ export function createApp() {
   app.use(cookieParser());
 
   // Health-check endpoint
-  app.get('/api/health', (req, res) => {
+  const healthCheckHandler = (req, res) => {
     const connected = isDbConnected();
 
     res.status(connected ? 200 : 503).json({
@@ -74,18 +85,34 @@ export function createApp() {
       uptimeSeconds: Math.round(process.uptime()),
       timestamp: new Date().toISOString(),
     });
-  });
+  };
 
-  // API routes
-  app.use('/api', requireDb);
-  app.use('/api/auth', authRoutes);
-  app.use('/api/movies', movieRoutes);
-  app.use('/api/theatres', theatreRoutes);
-  app.use('/api/shows', showRoutes);
-  app.use('/api/bookings', bookingRoutes);
-  app.use('/api/favorites', favoriteRoutes);
-  app.use('/api/reviews', reviewRoutes);
-  app.use('/api/admin', adminRoutes);
+  app.get('/', (req, res) => {
+    res.json({
+      success: true,
+      message: 'IMovies API is running',
+      status: 'ok',
+      health: '/api/health',
+    });
+  });
+  app.get('/health', healthCheckHandler);
+  app.get('/api/health', healthCheckHandler);
+
+  // API router
+  const apiRouter = express.Router();
+  apiRouter.use(requireDb);
+  apiRouter.use('/auth', authRoutes);
+  apiRouter.use('/movies', movieRoutes);
+  apiRouter.use('/theatres', theatreRoutes);
+  apiRouter.use('/shows', showRoutes);
+  apiRouter.use('/bookings', bookingRoutes);
+  apiRouter.use('/favorites', favoriteRoutes);
+  apiRouter.use('/reviews', reviewRoutes);
+  apiRouter.use('/admin', adminRoutes);
+
+  // Mount API router under both '/api' and '/'
+  app.use('/api', apiRouter);
+  app.use('/', apiRouter);
 
   app.use(notFound);
   app.use(errorHandler);
