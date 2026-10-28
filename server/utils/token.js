@@ -3,15 +3,41 @@ import { config } from '../config/env.js';
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-export const signToken = (user) =>
-  jwt.sign({ sub: String(user._id), role: user.role }, config.jwtSecret, { algorithm: 'HS256', expiresIn: '7d' });
+// Generate a JWT token for the authenticated user
+export const signToken = (user) => {
+  return jwt.sign(
+    {
+      sub: String(user._id),
+      role: user.role,
+    },
+    config.jwtSecret,
+    {
+      algorithm: 'HS256',
+      expiresIn: '7d',
+    }
+  );
+};
 
-const cookieOptions = () => ({
-  httpOnly: true,
-  secure: config.isProd,
-  sameSite: 'lax',
-  path: '/',
-});
+// Cookie settings for local development and production
+const cookieOptions = () => {
+  const isProduction = config.isProd || Boolean(process.env.VERCEL);
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/',
+  };
+};
 
-export const setAuthCookie = (res, token) => res.cookie('token', token, { ...cookieOptions(), maxAge: SEVEN_DAYS_MS });
-export const clearAuthCookie = (res) => res.clearCookie('token', cookieOptions());
+// Store the authentication token in an HTTP-only cookie
+export const setAuthCookie = (res, token) => {
+  res.cookie('token', token, {
+    ...cookieOptions(),
+    maxAge: SEVEN_DAYS_MS,
+  });
+};
+
+// Remove the authentication cookie during logout
+export const clearAuthCookie = (res) => {
+  res.clearCookie('token', cookieOptions());
+};
